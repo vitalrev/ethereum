@@ -1,5 +1,37 @@
 var Splitter = artifacts.require("./Splitter.sol");
 
+web3.eth.getTransactionReceiptMined = function (txnHash, interval) {
+    var transactionReceiptAsync;
+    interval = interval ? interval : 500;
+    transactionReceiptAsync = function(txnHash, resolve, reject) {
+        web3.eth.getTransactionReceipt(txnHash, (error, receipt) => {
+            if (error) {
+                reject(error);
+            } else {
+                if (receipt == null) {
+                    setTimeout(function () {
+                        transactionReceiptAsync(txnHash, resolve, reject);
+                    }, interval);
+                } else {
+                    resolve(receipt);
+                }
+            }
+        });
+    };
+
+    if (Array.isArray(txnHash)) {
+        var promises = [];
+        txnHash.forEach(function (oneTxHash) {
+            promises.push(web3.eth.getTransactionReceiptMined(oneTxHash, interval));
+        });
+        return Promise.all(promises);
+    } else {
+        return new Promise(function (resolve, reject) {
+                transactionReceiptAsync(txnHash, resolve, reject);
+            });
+    }
+};
+
 var expectedExceptionPromise = function (action, gasToUse) {
   return new Promise(function (resolve, reject) {
       try {
@@ -17,7 +49,7 @@ var expectedExceptionPromise = function (action, gasToUse) {
       assert.equal(receipt.gasUsed, gasToUse, "should have used all the gas");
     })
     .catch(function (e) {
-      if ((e + "").indexOf("invalid JUMP") || (e + "").indexOf("out of gas") > -1) {
+      if ((e + "").indexOf("invalid JUMP") > -1 || (e + "").indexOf("out of gas") > -1) {
         // We are in TestRPC
       } else if ((e + "").indexOf("please check your gas amount") > -1) {
         // We are in Geth for a deployment
@@ -29,39 +61,6 @@ var expectedExceptionPromise = function (action, gasToUse) {
 
 //Tests
 contract('Splitter', function(accounts) {
-  it("both addresses (bob and carol) are not null", function() {
-  	var splitter;
-    return Splitter.deployed().then( instance => {
-    	splitter = instance;
-    	var bobAddr = splitter.bob()
-    	assert.isNotNull(bobAddr, "Bob address is not defined");
-    	return bobAddr;
-    }).then( bobAddr => {
-    	console.log("bob address: " + bobAddr);
-    	var carolAddr = splitter.carol();
-    	assert.isNotNull(carolAddr, "Carol address is not definde");
-    	return carolAddr;
-    }).then( carolAddr => {
-    	console.log("carol address: " + carolAddr);    	
-    });
-  });
-
-  it("both addresses are correct", function() {
-  	var splitter;
-    return Splitter.deployed().then( instance => {
-    	splitter = instance;
-    	var bobAddr = splitter.bob()
-    	return bobAddr;
-    }).then( bobAddr => {
-    	assert.equal(bobAddr, accounts[1], "Bob address is not correct");
-    	var carolAddr = splitter.carol();
-    	return carolAddr;
-    }).then( carolAddr => {
-    	assert.equal(carolAddr, accounts[2], "Carol address is not correct");
-    });
-  });
-
-
   it("both balances are incremented after split", function() {
   	var splitter;
   	var bobAddress;
@@ -95,42 +94,28 @@ contract('Splitter', function(accounts) {
     	assert.equal(carolBalanceAfter, carolBalanceBefore + amountInWei/2, "Carol balance is not correct");
     });
   });
-
+/*
   it("exception by odd input values", function() {
   	var splitter;
   	var amountInWei = 1;
     return expectedExceptionPromise( function() {
     	Splitter.deployed().then( instance => {
     	splitter = instance;
-    	return splitter.split.call( { from: accounts[0], value: amountInWei, gas: 300000 });
+    	return splitter.split( { from: accounts[0], value: amountInWei, gas: 300000 });
     }), 300000});
   });
-
-  it("deactivate contract successful", function() {
+*/
+  it("destroy contract successful", function() {
     var splitter;
     return Splitter.deployed().then( instance => {
       splitter = instance;
-      return splitter.disable.call();
-    }).then( disabled => {
-      console.log("contract disabled");
-      return splitter.active();
-    }).then( active => {
-      console.log("contract active: " + active);
-      assert.isFalse(active, "contract can't be deactivated");
-    });
-  });
-
-  it("exception by deactivated contract", function() {
-    var splitter;
-    var amountInWei = 2;
-    return Splitter.deployed().then( instance => {
-      splitter = instance;
-      return splitter.disable.call();
-    }).then( deactivated => {
-      console.log("contract deactivated");
-      return expectedExceptionPromise( function() {
-         return splitter.split.call( { from: accounts[0], value: amountInWei, gas: 300000 })
-      , 300000});
+      return splitter.destroy();
+    }).then( destroyed => {
+      console.log("contract destroy called -> check if destroyed");
+      return splitter.owner();
+    }).then( owner => {
+      console.log("contract owner address after destroy: " + owner);
+      assert.equal(owner, "0x", "contract is not destroyed");
     });
   });
 })

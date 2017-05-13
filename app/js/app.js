@@ -25,7 +25,7 @@ var carol;
 
 window.addEventListener('load', function() {
     $("#split").click(split);
-    $("#deactivate").click(deactivate);
+    $("#destroy").click(destroy);
     
     var splitter;
     return web3.eth.getAccountsPromise()
@@ -46,10 +46,16 @@ window.addEventListener('load', function() {
             $("#aliceBalance").html(web3.fromWei(web3.eth.getBalance(alice).toNumber(), "ether"));
             $("#bobBalance").html(web3.fromWei(web3.eth.getBalance(bob).toNumber(), "ether"));
             $("#carolBalance").html(web3.fromWei(web3.eth.getBalance(carol).toNumber(), "ether"));
-            return splitter.active.call();
-        }).then(active => {
-            console.log("Splitter active: " + active);
-            $("#contractActive").html(active);
+            return splitter.owner();
+        }).then(owner => {
+            var status;
+            if (owner == "0x") {
+                status = "destroyed";
+            } else {
+                status = "online";
+            }
+            console.log("Splitter status: " + status);
+            $("#contractStatus").html(status);
         }) 
         .catch(console.error);
 });
@@ -66,7 +72,7 @@ const split = function() {
             $("#status").html("Transaction on the way... ");
             return deployed.split( { from: alice, value: amountInWei } );
         })
-        .then(txHash => {
+        .then(txObject => {
             // Make sure we update the UI.
             $("#aliceBalance").html(web3.fromWei(web3.eth.getBalance(alice).toNumber(), "ether"));
             $("#bobBalance").html(web3.fromWei(web3.eth.getBalance(bob).toNumber(), "ether"));
@@ -80,23 +86,31 @@ const split = function() {
         });
 };
 
-const deactivate = function() {
-    let deployed;
+const destroy = function() {
+    var splitter;
     return Splitter.deployed()
         .then(_deployed => {
-            deployed = _deployed;
+            splitter = _deployed;
             // .sendTransaction so that we get the txHash immediately.
-            return deployed.deactivate();
+            return splitter.destroy({ from: alice});
         })
-        .then(txHash => {
+        .then(destroyed => {
             // Make sure we update the UI.
-            console.log("deactivate finished successful");
-            return deployed.active.call();
-        }).then(active => {
-            console.log("Splitter active: " + active);
-            $("#contractActive").html(active);
+            console.log("destroy finished successful");
+            return splitter.owner();
+        })
+        .then(owner => {
+            var status;
+            if (owner == "0x") {
+                status = "destroyed";
+            } else {
+                status = "online";
+            }
+            console.log("Splitter status: " + status);
+            $("#contractStatus").html(status);
         })
         .catch(e => {
+            $("#status").html(e.toString());
             console.error(e);
         });
 };
