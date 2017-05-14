@@ -4,7 +4,7 @@ import "./Owned.sol";
 contract Splitter is Owned {
 	address public bob;
 	address public carol;
-	bool public destroyed;
+	bool private destroyed;
 
 	event LogSplitted(uint value);
 

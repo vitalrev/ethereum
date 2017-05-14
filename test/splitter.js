@@ -73,22 +73,30 @@ contract('Splitter', function(accounts) {
 
     return Splitter.deployed().then( instance => {
     	splitter = instance;
-    	return splitter.bob();
+    	return splitter.bob.call();
 	  }).then( bobAddr => {
 		  bobAddress = bobAddr;
-		  bobBalanceBefore = web3.eth.getBalance(bobAddress).toNumber();
+		  return web3.eth.getBalance(bobAddress);
+    }).then( balance => {
+      bobBalanceBefore = balance.toNumber();
     	console.log("Bob balance before split: " + web3.fromWei(bobBalanceBefore, "ether"));
-		  return splitter.carol();
+		  return splitter.carol.call();
 	  }).then( carolAddr => {
 		  carolAddress = carolAddr;
-		  carolBalanceBefore = web3.eth.getBalance(carolAddress).toNumber();
+		  return web3.eth.getBalance(carolAddress);
+    }).then( balance => {
+      carolBalanceBefore = balance.toNumber();
     	console.log("Carol balance before split: " + web3.fromWei(carolBalanceBefore, "ether"));
     	//call contract
     	return splitter.split( { from: accounts[0], value: amountInWei } );
     }).then( result => {
-    	bobBalanceAfter = web3.eth.getBalance(bobAddress).toNumber();
+    	return web3.eth.getBalance(bobAddress);
+    }).then( balance => {
+      bobBalanceAfter = balance.toNumber();
     	console.log("Bob balance after split: " + web3.fromWei(bobBalanceAfter, "ether"));
-    	carolBalanceAfter = web3.eth.getBalance(carolAddress).toNumber();
+    	return web3.eth.getBalance(carolAddress);
+    }).then( balance => {
+      carolBalanceAfter = balance.toNumber();
     	console.log("Carol balance after split: " + web3.fromWei(carolBalanceAfter, "ether"));
     	assert.equal(bobBalanceAfter, bobBalanceBefore + amountInWei/2, "Bob balance is not correct");
     	assert.equal(carolBalanceAfter, carolBalanceBefore + amountInWei/2, "Carol balance is not correct");

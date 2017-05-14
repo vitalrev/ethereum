@@ -43,9 +43,7 @@ window.addEventListener('load', function() {
         })
         .then(deployed => {
             splitter = deployed;
-            $("#aliceBalance").html(web3.fromWei(web3.eth.getBalance(alice).toNumber(), "ether"));
-            $("#bobBalance").html(web3.fromWei(web3.eth.getBalance(bob).toNumber(), "ether"));
-            $("#carolBalance").html(web3.fromWei(web3.eth.getBalance(carol).toNumber(), "ether"));
+            refreshBalances();
             return splitter.owner();
         }).then(owner => {
             var status;
@@ -59,6 +57,18 @@ window.addEventListener('load', function() {
         }) 
         .catch(console.error);
 });
+
+const refreshBalances = function() {
+    web3.eth.getBalancePromise(alice).then(balance => {
+        $("#aliceBalance").html(web3.fromWei(balance.toNumber(), "ether"));
+    });
+    web3.eth.getBalancePromise(bob).then(balance => {
+        $("#bobBalance").html(web3.fromWei(balance.toNumber(), "ether"));
+    });
+    web3.eth.getBalancePromise(carol).then(balance => {
+        $("#carolBalance").html(web3.fromWei(balance.toNumber(), "ether"));
+    });
+}
 
 const split = function() {
     let deployed;
@@ -74,9 +84,7 @@ const split = function() {
         })
         .then(txObject => {
             // Make sure we update the UI.
-            $("#aliceBalance").html(web3.fromWei(web3.eth.getBalance(alice).toNumber(), "ether"));
-            $("#bobBalance").html(web3.fromWei(web3.eth.getBalance(bob).toNumber(), "ether"));
-            $("#carolBalance").html(web3.fromWei(web3.eth.getBalance(carol).toNumber(), "ether"));
+            refreshBalances();
             console.log("split finished successful");
             $("#status").html("Transaction completed ");
         })
