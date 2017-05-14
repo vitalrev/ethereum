@@ -4,6 +4,7 @@ import "./Owned.sol";
 contract Splitter is Owned {
 	address public bob;
 	address public carol;
+	bool public destroyed;
 
 	event LogSplitted(uint value);
 
@@ -14,6 +15,9 @@ contract Splitter is Owned {
 		if (msg.value % 2 > 0) {
 			throw;
 		}
+		if (destroyed) {
+			throw;
+		}
 		_;
 	}
 
@@ -22,8 +26,12 @@ contract Splitter is Owned {
 		carol = _carol;
 	}
 
+	//fallback
+	function() { }
+
 	function destroy() 
 		onlyOwner() {
+		destroyed = true;
 		selfdestruct(msg.sender);
 	}
 
